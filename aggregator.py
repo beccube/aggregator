@@ -28,7 +28,9 @@ if __name__ == "__main__":
 
         dfM = df.groupby(xind).mean()
         dfE = df.groupby(xind).std()
+        dfN = df.groupby(xind).count()
         df = dfM.join(dfE, on=xind, rsuffix="_std")
+        df = df.join(dfN, on=xind, rsuffix="_n")
 
         print("Now data looks like:")
         print(df.head())
