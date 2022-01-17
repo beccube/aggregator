@@ -1,45 +1,118 @@
 #! /usr/bin/env python3
 
-"""Aggregate values with repeated x in a csv file"""
+"""Aggregate values with repeated x in a csv file."""
 
+# import tkinter as tk
 import tkinter.filedialog as fd
-import numpy as np
+# from tkinter import ttk
+from collections import namedtuple
+# import numpy as np
 import pandas as pd
+import logging
+import sys
 
 
-if __name__ == "__main__":
+def main():
+    """Do the main function."""
+    print("\nAGGREGATOR\n")
     print("="*80)
 
     # get filename
-    myFd = fd.askopenfile()
-    fname = myFd.name
+    fname = chooseFile()
+    if fname is None:
+        sys.exit(0)
+    print(f"File chosen: {fname}")
 
-    print(f"Selected file: {fname}")
-
-    # read csv
+    # get dataframe
     df = pd.read_csv(fname)
     print("Original data looks like:")
     print(df.head())
 
-    if not np.all(df.iloc[:, 0].value_counts() == 1):
-        # do the aggregation
-        xind = df.columns[0]
-        print(f"Aggregating by column {xind}")
+    myVars = chooseVars(list(df.columns))
 
-        dfM = df.groupby(xind).mean()
-        dfE = df.groupby(xind).std()
-        dfN = df.groupby(xind).count()
-        df = dfM.join(dfE, on=xind, rsuffix="_std")
-        df = df.join(dfN, on=xind, rsuffix="_n")
+    print(myVars)
 
-        print("Now data looks like:")
-        print(df.head())
+    dfS = splitBy(df, myVars.s, myVars.se)
+    if dfS is None:
+        print("Goodbye.")
+        sys.exit(1)
 
-    else:
-        print("Data is already aggregated.")
+    dfT, dfF = dfS
+    dfTa = aggregate(dfT, myVars.x)
+    dfFa = aggregate(dfF, myVars.x)
+    fnameT = fname[:-4] + "_splitT.csv"
+    fnameF = fname[:-4] + "_splitF.csv"
 
-    savename = f"{fname[:-4]}_aggregated.csv"
-    print(f"Saving to {savename}")
-    df.to_csv(savename)
+    dfTa.to_csv(fnameT)
+    dfFa.to_csv(fnameF)
 
-    print("="*80)
+
+def chooseFile() -> str:
+    """Choose a file to process."""
+    return fd.askopenfilename()
+
+
+AgVars = namedtuple("AgVars", ['x', 's', 'se'])
+
+
+def chooseVars(names: list) -> AgVars:
+    """Choose the variables for the analysis."""
+    for i, x in enumerate(names):
+        print(f"{i} {x}")
+    # prompt for variables
+    ncol = len(names)
+    x_ans = colPrompt('x', ncol)
+    s_ans, s_expr = splitVarExprPrompt(ncol) if splitPrompt() else (None, None)
+    return AgVars(names[x_ans], names[s_ans], s_expr)
+
+
+def colPrompt(varname, ncol):
+    """Prompt for a column index."""
+    while True:
+        ans = int(input(f"Insert index of {varname} column [0-{ncol-1}]: "))
+        if (ans < 0) or (ans >= ncol):
+            print("Value not good.")
+        else:
+            return ans
+
+
+def splitPrompt():
+    """Ask if you want to split."""
+    while True:
+        ans = input("Do you want to split file? [y/n] ").lower()
+        if ans in ['y', 'yes']:
+            return True
+        if ans in ['n', 'no']:
+            return False
+        # if not returned, input value not correct
+        print("Answer not understood. Say 'y' or 'n' (without quotes).")
+
+
+def splitVarExprPrompt(ncol):
+    """Prompt for split variable and expression."""
+    s_ans = colPrompt('split', ncol)
+    s_expr = input("Insert split expression in x (e.g. x>10) ")
+    return s_ans, s_expr
+
+
+def splitBy(df: pd.DataFrame, splitVar: str, splitExpr: str) -> tuple:
+    """Split in two dataframes depending on truth of splitExpr(splitVar)."""
+    vals = df[splitVar]
+    try:
+        filtlist = [eval(splitExpr, None, {'x': a}) for a in vals]
+    except (TypeError, NameError) as e:
+        logging.error(str(e))
+        return None
+
+    opplist = list(map(lambda x: not x, filtlist))
+
+    return (df[filtlist], df[opplist])
+
+
+def aggregate(df, xvar: str):
+    """Compute mean of xval column."""
+    return df.groupby([xvar]).mean()
+
+
+if __name__ == "__main__":
+    main()
