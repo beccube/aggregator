@@ -39,12 +39,28 @@ def main():
 
     dfT, dfF = dfS
     dfTa = aggregate(dfT, myVars.x)
-    dfFa = aggregate(dfF, myVars.x)
-    fnameT = fname[:-4] + "_splitT.csv"
-    fnameF = fname[:-4] + "_splitF.csv"
+
+    if len(dfF) >= 0:
+        dfFa = aggregate(dfF, myVars.x)
+
+        fnameT = fname[:-4] + "_splitT.csv"
+        fnameF = fname[:-4] + "_splitF.csv"
+
+        saved = [fnameT, fnameF]
+
+        dfFa.to_csv(fnameF)
+
+    else:
+        fnameT = fname[:-4] + "_aggregate.csv"
+        saved = [fnameT]
 
     dfTa.to_csv(fnameT)
-    dfFa.to_csv(fnameF)
+
+    print("File saved to:")
+    for n in saved:
+        print("    " + n)
+
+    print("="*80)
 
 
 def chooseFile() -> str:
@@ -97,6 +113,8 @@ def splitVarExprPrompt(ncol):
 
 def splitBy(df: pd.DataFrame, splitVar: str, splitExpr: str) -> tuple:
     """Split in two dataframes depending on truth of splitExpr(splitVar)."""
+    if splitVar is None:
+        filtlist = True * len(df)
     vals = df[splitVar]
     try:
         filtlist = [eval(splitExpr, None, {'x': a}) for a in vals]
