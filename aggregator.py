@@ -25,6 +25,7 @@ def main():
 
     # get dataframe
     df = pd.read_csv(fname)
+    df = omitRemove(df)
     print("Original data looks like:")
     print(df.head())
 
@@ -130,6 +131,16 @@ def splitBy(df: pd.DataFrame, splitVar: str, splitExpr: str) -> tuple:
 def aggregate(df, xvar: str):
     """Compute mean of xval column."""
     return df.groupby([xvar]).mean()
+
+
+def omitRemove(df: pd.DataFrame) -> pd.DataFrame:
+    """Remove omitted rows"""
+    if 'Omit' not in df.columns:
+        return df
+
+    dfOut = df.copy()
+    dfOut.loc[dfOut['Omit'].isna(), 'Omit'] = False
+    return dfOut[~ dfOut['Omit'].astype(bool)]
 
 
 if __name__ == "__main__":
