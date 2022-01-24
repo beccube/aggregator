@@ -108,7 +108,7 @@ def splitPrompt():
 def splitVarExprPrompt(ncol):
     """Prompt for split variable and expression."""
     s_ans = colPrompt('split', ncol)
-    s_expr = input("Insert split expression in x (e.g. x>10) ")
+    s_expr = input("Insert split expression in s (e.g. s>10) ")
     return s_ans, s_expr
 
 
@@ -118,7 +118,7 @@ def splitBy(df: pd.DataFrame, splitVar: str, splitExpr: str) -> tuple:
         filtlist = True * len(df)
     vals = df[splitVar]
     try:
-        filtlist = [eval(splitExpr, None, {'x': a}) for a in vals]
+        filtlist = [eval(splitExpr, None, {'s': a}) for a in vals]
     except (TypeError, NameError) as e:
         logging.error(str(e))
         return None
