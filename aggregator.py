@@ -130,11 +130,21 @@ def splitBy(df: pd.DataFrame, splitVar: str, splitExpr: str) -> tuple:
 
 def aggregate(df, xvar: str):
     """Compute mean of xval column."""
-    return df.groupby([xvar]).mean()
+    groupedDf = df.select_dtypes('float64').groupby([xvar])
+    meanDf = groupedDf.mean()
+    cnt = groupedDf.size()
+    errDf = groupedDf.std().transform(
+        lambda x: x / cnt.astype('float64')
+    )
+    errNames = {x: x+'_err' for x in errDf.columns}
+    errDf.rename(columns=errNames, inplace=True)
+    joinDf = meanDf.join(errDf)
+    joinDf['cnt'] = cnt
+    return joinDf
 
 
 def omitRemove(df: pd.DataFrame) -> pd.DataFrame:
-    """Remove omitted rows"""
+    """Remove omitted rows."""
     if 'Omit' not in df.columns:
         return df
 
